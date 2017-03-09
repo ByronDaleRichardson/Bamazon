@@ -4,6 +4,7 @@ var inquirer = require("inquirer");
 var mysql = require("mysql");
 var colors = require("colors");
 
+// setting up mysql connection
 var connection = mysql.createConnection({
     host: "localhost",
     port: 3306,
@@ -12,11 +13,13 @@ var connection = mysql.createConnection({
     database: "Bamazon"
 });
 
+// connecting to mysql
 connection.connect(function(err) {
     if (err) throw err;
     console.log("connected as id " + connection.threadId);
 });
 
+// funciton to show the BAMazon inventory
 function showInventory() {
     connection.query('SELECT * FROM products', function(err, inventory) {
         if (err) throw err;
@@ -24,7 +27,8 @@ function showInventory() {
             for (var i = 0; i < inventory.length; i++) {
                 console.log("Item ID: " + inventory[i].item_id + " | Product: " + inventory[i].product_name + " | Department: " + inventory[i].department_name + " | Price: " + inventory[i].price + " | Quantity: " + inventory[i].stock_quantity);
             }
-
+            
+            // prompting the user for input
             inquirer.prompt([
                 {
                     type: "input",
@@ -41,24 +45,29 @@ function showInventory() {
                     var itemId = order.id;
                     connection.query('SELECT * FROM products WHERE item_id=' + itemId, function(err, selectedItem) {
                         if (err) throw err;
+                            
+                            // checks the BAMazon inventory
                             if (selectedItem[0].stock_quantity - quantity >= 0) {
                                 console.log("Bamazon's Inventory has enough of that item (".green + selectedItem[0].product_name.green + ")!".green);
                                 console.log("Quantity in Stock: ".green + selectedItem[0].stock_quantity + " Order Quantity: ".green + quantity);
                                 console.log("You will be charged ".green + (order.quantity * selectedItem[0].price) + " dollars. Thank you for shopping @ BAMazon.".green);
 
+                                // updates the inventory
                                 connection.query('UPDATE products SET stock_quantity=? WHERE item_id=?', [selectedItem[0].stock_quantity - quantity, itemId],
                                     function(err, inventory) {
                                         if (err) throw err;
                                         showInventory();
                                     });
                             }
+
+                            // display if not enough inventory
                             else {
                                 console.log("Insufficient quantity. Please order less of that item, as BAMazon only has ".red + selectedItem[0].stock_quantity + " " + selectedItem[0].product_name.red + " in stock at this moment.".red);
                                 showInventory();
                             }
 
                     });
-                });
+            });
 
     });
 }
